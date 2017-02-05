@@ -1227,6 +1227,32 @@ func (api *Instance) Poll(timeout int32) (bool, error) {
 	return api.pollRequest(timeout, true)
 }
 
+func (api *Instance) textKeyValueParse(text []byte) map[string][]string {
+	result := map[string][]string{}
+	data := bytes.Split(text, []byte{0})
+	for i := 0; i < len(data)-1; i += 2 {
+		key := string(data[i])
+		value := string(data[i+1])
+		current := result[key]
+		if current == nil {
+			result[key] = []string{value}
+		} else {
+			result[key] = append(current, value)
+		}
+	}
+	return result
+}
+
+// RequestHttpQsParse parses "text_pairs" from a HTTP GET query string
+func (api *Instance) RequestHttpQsParse(request []byte) map[string][]string {
+	return api.textKeyValueParse(request)
+}
+
+// InfoKeyValueParse parses "text_pairs" in service request info
+func (api *Instance) InfoKeyValueParse(messageInfo []byte) map[string][]string {
+	return api.textKeyValueParse(messageInfo)
+}
+
 func (api *Instance) send(data []byte) error {
 	var err error
 	if api.useHeader {
