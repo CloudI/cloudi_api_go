@@ -1023,7 +1023,7 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			requestInfo := make([]byte, requestInfoSize-1)
+			requestInfo := make([]byte, requestInfoSize)
 			_, err = reader.Read(requestInfo)
 			if err != nil {
 				return false, err
@@ -1037,7 +1037,7 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			request := make([]byte, requestSize-1)
+			request := make([]byte, requestSize)
 			_, err = reader.Read(request)
 			if err != nil {
 				return false, err
@@ -1441,6 +1441,7 @@ func terminateErrorNew(timeout uint32) error {
 func (e *TerminateError) Error() string {
 	return "Terminate"
 }
+
 // Timeout provides the termination timeout configured for the service
 func (e *TerminateError) Timeout() uint32 {
 	return e.timeout
