@@ -45,7 +45,6 @@ import (
 	"container/list"
 	"encoding/binary"
 	"erlang"
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -818,7 +817,7 @@ func (api *Instance) callbackExecute(function Callback, command uint32, name, pa
 			case error:
 				err = errValue
 			default:
-				err = errors.New(fmt.Sprintf("%#v", errValue))
+				err = fmt.Errorf("%#v", errValue)
 			}
 		}
 	}()
@@ -1442,6 +1441,7 @@ func terminateErrorNew(timeout uint32) error {
 func (e *TerminateError) Error() string {
 	return "Terminate"
 }
+// Timeout provides the termination timeout configured for the service
 func (e *TerminateError) Timeout() uint32 {
 	return e.timeout
 }
