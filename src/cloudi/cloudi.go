@@ -532,8 +532,8 @@ func (api *Instance) RecvAsync(extra ...interface{}) ([]byte, []byte, []byte, er
 	timeout := api.timeoutSync
 	var transId [16]byte
 	consume := true
-	for argI := 0; argI < extraArity; argI++ {
-		switch arg := extra[argI].(type) {
+	for _, extraArg := range extra {
+		switch arg := extraArg.(type) {
 		case uint32:
 			timeout = arg
 		case uint8:
@@ -815,12 +815,7 @@ func (api *Instance) callback(command uint32, name, pattern string, requestInfo,
 func (api *Instance) callbackExecute(function Callback, command uint32, name, pattern string, requestInfo, request []byte, timeout uint32, priority int8, transId [16]byte, pid erlang.OtpErlangPid) (responseInfo []byte, response []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			switch errValue := r.(type) {
-			case error:
-				err = errValue
-			default:
-				err = fmt.Errorf("%#v", errValue)
-			}
+			err = StackErrorWrapNew(r)
 		}
 	}()
 	switch command {
@@ -1088,7 +1083,6 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 					return false, nil
 				}
 			}
-			return false, messageDecodingErrorNew() //XXX
 			err = api.callback(command, string(name), string(pattern), requestInfo, request, requestTimeout, priority, transId, pid.(erlang.OtpErlangPid))
 			if err != nil {
 				return false, err
@@ -1374,6 +1368,41 @@ type StackError interface {
 	Stack() []byte
 }
 
+// StackErrorWrap is used to attach a stacktrace to panic data as an error
+type StackErrorWrap struct {
+	stack []byte
+	Value error
+}
+
+// StackErrorWrapNew creates a new error with a stack trace from any data
+func StackErrorWrapNew(value interface{}) error {
+	stack := debug.Stack()
+	if err, ok := value.(error); ok {
+		return &StackErrorWrap{stack: stack, Value: err}
+	}
+	return &StackErrorWrap{stack: stack, Value: fmt.Errorf("%#v", value)}
+}
+
+func (e *StackErrorWrap) Error() string {
+	output := new(bytes.Buffer)
+	errorFormat(output, e.Value)
+	stackErrorFormat(output, e.stack)
+	return output.String()
+}
+func (e *StackErrorWrap) Stack() []byte {
+	return e.stack
+}
+func errorFormat(output *bytes.Buffer, err error) {
+	_, _ = output.WriteString(reflect.TypeOf(err).String())
+	_, _ = output.WriteString(": ")
+	_, _ = output.WriteString(err.Error())
+	_, _ = output.WriteString("\n")
+}
+func stackErrorFormat(output *bytes.Buffer, stack []byte) {
+	_, _ = output.WriteString("\t")
+	_, _ = output.Write(bytes.TrimSuffix(bytes.Join(bytes.Split(stack, []byte{'\n'}), []byte{'\n', '\t'}), []byte{'\t'}))
+}
+
 // InvalidInputError indicates that invalid input was provided
 type InvalidInputError struct {
 	stack []byte
@@ -1468,13 +1497,13 @@ func (e *TerminateError) Timeout() uint32 {
 // ErrorWrite outputs error information to the cloudi.log file through stderr
 func ErrorWrite(stream *os.File, err error) {
 	output := new(bytes.Buffer)
-	_, _ = output.WriteString(reflect.TypeOf(err).String())
-	_, _ = output.WriteString(": ")
-	_, _ = output.WriteString(err.Error())
-	_, _ = output.WriteString("\n")
+	if wrap, ok := err.(*StackErrorWrap); ok {
+		errorFormat(output, wrap.Value)
+	} else {
+		errorFormat(output, err)
+	}
 	if serr, ok := err.(StackError); ok {
-		_, _ = output.WriteString("\t")
-		_, _ = output.Write(bytes.Join(bytes.Split(serr.Stack(), []byte{'\n'}), []byte{'\n', '\t'}))
+		stackErrorFormat(output, serr.Stack())
 	}
 	_, _ = stream.Write(output.Bytes())
 }
