@@ -815,7 +815,24 @@ func (api *Instance) callback(command uint32, name, pattern string, requestInfo,
 func (api *Instance) callbackExecute(function Callback, command uint32, name, pattern string, requestInfo, request []byte, timeout uint32, priority int8, transId [16]byte, pid erlang.OtpErlangPid) (responseInfo []byte, response []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = StackErrorWrapNew(r)
+			switch errValue := r.(type) {
+			case *InvalidInputError:
+				err = errValue
+			case *MessageDecodingError:
+				err = errValue
+			case *TerminateError:
+				err = errValue
+			case *ReturnAsyncError:
+				err = errValue
+			case *ReturnSyncError:
+				err = errValue
+			case *ForwardAsyncError:
+				err = errValue
+			case *ForwardSyncError:
+				err = errValue
+			default:
+				err = StackErrorWrapNew(errValue)
+			}
 		}
 	}()
 	switch command {
