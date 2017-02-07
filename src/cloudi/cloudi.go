@@ -1389,6 +1389,7 @@ func (e *StackErrorWrap) Error() string {
 	stackErrorFormat(output, e.stack)
 	return output.String()
 }
+// Stack return the stack stored when the error was created
 func (e *StackErrorWrap) Stack() []byte {
 	return e.stack
 }
@@ -1414,6 +1415,7 @@ func invalidInputErrorNew() error {
 func (e *InvalidInputError) Error() string {
 	return "Invalid Input"
 }
+// Stack return the stack stored when the error was created
 func (e *InvalidInputError) Stack() []byte {
 	return e.stack
 }
@@ -1473,6 +1475,7 @@ func messageDecodingErrorNew() error {
 func (e *MessageDecodingError) Error() string {
 	return "Message Decoding Error"
 }
+// Stack return the stack stored when the error was created
 func (e *MessageDecodingError) Stack() []byte {
 	return e.stack
 }
@@ -1508,7 +1511,7 @@ func ErrorWrite(stream *os.File, err error) {
 	_, _ = stream.Write(output.Bytes())
 }
 
-// ErrorWrite outputs error information and exits
+// ErrorExit outputs error information and exits
 func ErrorExit(stream *os.File, err error) {
 	ErrorWrite(stream, err)
 	os.Exit(1)
