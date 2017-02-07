@@ -1112,7 +1112,7 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			responseInfo := make([]byte, responseInfoSize-1)
+			responseInfo := make([]byte, responseInfoSize)
 			_, err = reader.Read(responseInfo)
 			if err != nil {
 				return false, err
@@ -1126,7 +1126,7 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			response := make([]byte, responseSize-1)
+			response := make([]byte, responseSize)
 			_, err = reader.Read(response)
 			if err != nil {
 				return false, err
