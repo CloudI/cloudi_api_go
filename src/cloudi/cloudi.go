@@ -384,7 +384,7 @@ func (api *Instance) forwardAsyncI(name string, requestInfo, request []byte, tim
 	if request == nil {
 		request = []byte{}
 	}
-	forwardAsync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("forward_async"), name, requestInfo, request, timeout, priority, transId[:], pid}, -1)
+	forwardAsync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("forward_async"), name, requestInfo, request, timeout, priority, transId[:], erlang.OtpErlangPid(pid)}, -1)
 	if err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (api *Instance) forwardSyncI(name string, requestInfo, request []byte, time
 	if request == nil {
 		request = []byte{}
 	}
-	forwardSync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("forward_sync"), name, requestInfo, request, timeout, priority, transId[:], pid}, -1)
+	forwardSync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("forward_sync"), name, requestInfo, request, timeout, priority, transId[:], erlang.OtpErlangPid(pid)}, -1)
 	if err != nil {
 		return err
 	}
@@ -460,7 +460,7 @@ func (api *Instance) returnAsyncI(name, pattern string, responseInfo, response [
 	if response == nil {
 		response = []byte{}
 	}
-	returnAsync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("return_async"), name, pattern, responseInfo, response, timeout, transId[:], pid}, -1)
+	returnAsync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("return_async"), name, pattern, responseInfo, response, timeout, transId[:], erlang.OtpErlangPid(pid)}, -1)
 	if err != nil {
 		return err
 	}
@@ -494,7 +494,7 @@ func (api *Instance) returnSyncI(name, pattern string, responseInfo, response []
 	if response == nil {
 		response = []byte{}
 	}
-	returnSync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("return_sync"), name, pattern, responseInfo, response, timeout, transId[:], pid}, -1)
+	returnSync, err := erlang.TermToBinary([]interface{}{erlang.OtpErlangAtom("return_sync"), name, pattern, responseInfo, response, timeout, transId[:], erlang.OtpErlangPid(pid)}, -1)
 	if err != nil {
 		return err
 	}
