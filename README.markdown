@@ -8,3 +8,13 @@ Go [CloudI API](http://cloudi.org/api.html#1_Intro)
 Use as a remote import path
 `import "github.com/CloudI/cloudi_api_go/src/cloudi"`
 
+Author
+------
+
+Michael Truog (mjtruog [at] gmail (dot) com)
+
+License
+-------
+
+MIT License
+
