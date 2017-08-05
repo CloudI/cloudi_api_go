@@ -67,33 +67,30 @@ var nativeEndian binary.ByteOrder
 
 // Instance is an instance of the CloudI API
 type Instance struct {
-	state                    interface{}
-	socket                   net.Conn
-	useHeader                bool
-	initializationComplete   bool
-	terminate                bool
-	fragmentSize             uint32
-	fragmentRecv             []byte
-	callbacks                map[string]*list.List
-	bufferRecv               *bytes.Buffer
-	processIndex             uint32
-	processCount             uint32
-	processCountMax          uint32
-	processCountMin          uint32
-	prefix                   string
-	timeoutInitialize        uint32
-	timeoutAsync             uint32
-	timeoutSync              uint32
-	timeoutTerminate         uint32
-	priorityDefault          int8
-	requestTimeoutAdjustment bool
-	requestTimer             time.Time
-	requestTimeout           uint32
-	responseInfo             []byte
-	response                 []byte
-	transId                  []byte
-	transIds                 [][]byte
-	subscribeCount           uint32
+	state                  interface{}
+	socket                 net.Conn
+	useHeader              bool
+	initializationComplete bool
+	terminate              bool
+	fragmentSize           uint32
+	fragmentRecv           []byte
+	callbacks              map[string]*list.List
+	bufferRecv             *bytes.Buffer
+	processIndex           uint32
+	processCount           uint32
+	processCountMax        uint32
+	processCountMin        uint32
+	prefix                 string
+	timeoutInitialize      uint32
+	timeoutAsync           uint32
+	timeoutSync            uint32
+	timeoutTerminate       uint32
+	priorityDefault        int8
+	responseInfo           []byte
+	response               []byte
+	transId                []byte
+	transIds               [][]byte
+	subscribeCount         uint32
 }
 
 // Source is the Erlang pid that is the source of the service request
@@ -362,9 +359,6 @@ func (api *Instance) McastAsync(name string, requestInfo, request []byte, timeou
 }
 
 func (api *Instance) forwardAsyncI(name string, requestInfo, request []byte, timeout uint32, priority int8, transId [16]byte, pid Source) error {
-	if api.requestTimeoutAdjustment && timeout == api.requestTimeout {
-		_, timeout = api.timeoutAdjust()
-	}
 	if requestInfo == nil {
 		requestInfo = []byte{}
 	}
@@ -392,9 +386,6 @@ func (api *Instance) ForwardAsync(name string, requestInfo, request []byte, time
 }
 
 func (api *Instance) forwardSyncI(name string, requestInfo, request []byte, timeout uint32, priority int8, transId [16]byte, pid Source) error {
-	if api.requestTimeoutAdjustment && timeout == api.requestTimeout {
-		_, timeout = api.timeoutAdjust()
-	}
 	if requestInfo == nil {
 		requestInfo = []byte{}
 	}
@@ -434,13 +425,6 @@ func (api *Instance) Forward(requestType int, name string, requestInfo, request 
 }
 
 func (api *Instance) returnAsyncI(name, pattern string, responseInfo, response []byte, timeout uint32, transId [16]byte, pid Source) error {
-	if api.requestTimeoutAdjustment && timeout == api.requestTimeout {
-		var timedOut bool
-		timedOut, timeout = api.timeoutAdjust()
-		if timedOut {
-			responseInfo, response = []byte{}, []byte{}
-		}
-	}
 	if responseInfo == nil {
 		responseInfo = []byte{}
 	}
@@ -468,13 +452,6 @@ func (api *Instance) ReturnAsync(name, pattern string, responseInfo, response []
 }
 
 func (api *Instance) returnSyncI(name, pattern string, responseInfo, response []byte, timeout uint32, transId [16]byte, pid Source) error {
-	if api.requestTimeoutAdjustment && timeout == api.requestTimeout {
-		var timedOut bool
-		timedOut, timeout = api.timeoutAdjust()
-		if timedOut {
-			responseInfo, response = []byte{}, []byte{}
-		}
-	}
 	if responseInfo == nil {
 		responseInfo = []byte{}
 	}
@@ -725,21 +702,7 @@ func (api *Instance) TimeoutTerminate() uint32 {
 	return api.timeoutTerminate
 }
 
-func (api *Instance) timeoutAdjust() (bool, uint32) {
-	elapsed := int64(time.Now().Sub(api.requestTimer) / time.Millisecond)
-	if elapsed < 0 {
-		elapsed = 0
-	} else if elapsed > int64(api.requestTimeout) {
-		return true, 0
-	}
-	return false, api.requestTimeout - uint32(elapsed)
-}
-
 func (api *Instance) callback(command uint32, name, pattern string, requestInfo, request []byte, timeout uint32, priority int8, transId [16]byte, pid Source) error {
-	if api.requestTimeoutAdjustment {
-		api.requestTimer = time.Now()
-		api.requestTimeout = timeout
-	}
 	functionQueue := api.callbacks[pattern]
 	var function Callback
 	if functionQueue == nil {
@@ -867,16 +830,6 @@ func (api *Instance) handleEvents(external bool, reader *bytes.Reader, command u
 			if err != nil {
 				return false, err
 			}
-			var requestTimeoutAdjustment uint8
-			err = binary.Read(reader, nativeEndian, &requestTimeoutAdjustment)
-			if err != nil {
-				return false, err
-			}
-			api.requestTimeoutAdjustment = (requestTimeoutAdjustment != 0)
-			if api.requestTimeoutAdjustment {
-				api.requestTimer = time.Now()
-				api.requestTimeout = 0
-			}
 		case messageKeepalive:
 			var keepalive []byte
 			keepalive, err = erlang.TermToBinary(erlang.OtpErlangAtom("keepalive"), -1)
@@ -1000,12 +953,6 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			var requestTimeoutAdjustment uint8
-			err = binary.Read(reader, nativeEndian, &requestTimeoutAdjustment)
-			if err != nil {
-				return false, err
-			}
-			api.requestTimeoutAdjustment = (requestTimeoutAdjustment != 0)
 			if reader.Len() > 0 {
 				_, err = api.handleEvents(external, reader, 0)
 				if err != nil {
@@ -1235,16 +1182,6 @@ func (api *Instance) pollRequest(timeout int32, external bool) (bool, error) {
 			err = binary.Read(reader, nativeEndian, &(api.priorityDefault))
 			if err != nil {
 				return false, err
-			}
-			var requestTimeoutAdjustment uint8
-			err = binary.Read(reader, nativeEndian, &requestTimeoutAdjustment)
-			if err != nil {
-				return false, err
-			}
-			api.requestTimeoutAdjustment = (requestTimeoutAdjustment != 0)
-			if api.requestTimeoutAdjustment {
-				api.requestTimer = time.Now()
-				api.requestTimeout = 0
 			}
 		case messageKeepalive:
 			var keepalive []byte
