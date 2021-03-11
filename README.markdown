@@ -6,7 +6,7 @@
 Go [CloudI API](https://cloudi.org/api.html#1_Intro)
 
 Use as a remote import path
-`import "github.com/CloudI/cloudi_api_go/src/cloudi"`
+`import "github.com/CloudI/cloudi_api_go/v2/cloudi"`
 
 Author
 ------
